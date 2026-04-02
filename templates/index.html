@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vagas Daniel</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+
+<header>
+    <h2>Vagas Daniel</h2>
+</header>
+
+<div class="topbar">
+    <input id="search" placeholder="Buscar vagas..." />
+    <button onclick="loadJobs(12)">12h</button>
+    <button onclick="loadJobs(24)">24h</button>
+</div>
+
+<div class="layout">
+
+    <div class="col">
+        <h3>Vagas disponíveis</h3>
+        <div id="jobs"></div>
+    </div>
+
+    <div class="col">
+        <h3>Vagas aplicadas</h3>
+        <div id="applied"></div>
+    </div>
+
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
