@@ -4,8 +4,9 @@ import os
 
 app = Flask(__name__)
 
+
 # -----------------------------
-# BASE DE VAGAS (SIMULANDO LINKEDIN)
+# BASE SIMULADA
 # -----------------------------
 def get_jobs_source():
     now = datetime.now()
@@ -13,45 +14,33 @@ def get_jobs_source():
     return [
         {
             "id": "1",
-            "title": "Backend Python Developer",
+            "title": "Product Owner",
             "company": "Tech Corp",
             "posted_at": (now - timedelta(hours=2)).isoformat()
         },
         {
             "id": "2",
-            "title": "Full Stack Developer React Python",
+            "title": "Backend Developer Python",
             "company": "Startup BR",
-            "posted_at": (now - timedelta(hours=5)).isoformat()
+            "posted_at": (now - timedelta(hours=4)).isoformat()
         },
         {
             "id": "3",
-            "title": "DevOps Engineer AWS",
-            "company": "Cloud Systems",
-            "posted_at": (now - timedelta(hours=8)).isoformat()
+            "title": "Product Owner Senior",
+            "company": "Global Systems",
+            "posted_at": (now - timedelta(hours=6)).isoformat()
         },
         {
             "id": "4",
-            "title": "Data Engineer Python",
-            "company": "AI Labs",
-            "posted_at": (now - timedelta(hours=12)).isoformat()
+            "title": "DevOps Engineer",
+            "company": "Cloud Infra",
+            "posted_at": (now - timedelta(hours=10)).isoformat()
         },
         {
             "id": "5",
-            "title": "Software Engineer Java Backend",
-            "company": "Global Tech",
-            "posted_at": (now - timedelta(hours=18)).isoformat()
-        },
-        {
-            "id": "6",
-            "title": "Cloud Architect",
-            "company": "Infra Global",
-            "posted_at": (now - timedelta(hours=22)).isoformat()
-        },
-        {
-            "id": "7",
-            "title": "Backend Engineer Node.js",
+            "title": "Frontend React Developer",
             "company": "Digital Factory",
-            "posted_at": (now - timedelta(hours=23)).isoformat()
+            "posted_at": (now - timedelta(hours=12)).isoformat()
         }
     ]
 
@@ -65,13 +54,17 @@ def home():
 
 
 # -----------------------------
-# API PRINCIPAL (CORRIGIDA DE VERDADE)
+# API DE BUSCA (CORRETA AGORA)
 # -----------------------------
 @app.route("/api/jobs")
 def jobs():
 
     q = request.args.get("q", "").strip().lower()
     hours = int(request.args.get("hours", 24))
+
+    # 🚨 REGRA 1: se não tem busca, NÃO retorna nada
+    if not q:
+        return jsonify([])
 
     source = get_jobs_source()
 
@@ -82,29 +75,31 @@ def jobs():
     for job in source:
         posted_time = datetime.fromisoformat(job["posted_at"])
 
-        # 1. FILTRO DE TEMPO (12h / 24h)
+        # filtro de tempo
         if posted_time < limit_time:
             continue
 
-        # 2. FILTRO DE BUSCA (SEM MATAR RESULTADOS)
-        if q:
-            title = job["title"].lower()
-            company = job["company"].lower()
+        title = job["title"].lower()
+        company = job["company"].lower()
 
-            # match mais flexível (EVITA SOBRAR 1 ITEM)
-            if q not in title and q not in company:
-                continue
+        # 🚨 REGRA 2: match EXATO / REAL (sem mistura)
+        words = q.split()
 
-        result.append(job)
+        match = all(
+            any(w in title or w in company for w in words)
+        )
 
-    # 3. ORDENAÇÃO (MAIS RECENTE PRIMEIRO)
+        if match:
+            result.append(job)
+
+    # ordenação
     result.sort(key=lambda x: x["posted_at"], reverse=True)
 
     return jsonify(result)
 
 
 # -----------------------------
-# APLICAÇÃO (SALVA VAGAS)
+# APLICAÇÃO
 # -----------------------------
 applied = []
 
@@ -113,7 +108,6 @@ applied = []
 def apply():
     job = request.json
 
-    # evita duplicar
     if job not in applied:
         applied.append(job)
 
