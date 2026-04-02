@@ -1,47 +1,35 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 import os
+import re
 
 app = Flask(__name__)
 
 
 # -----------------------------
-# BASE DE VAGAS (SIMULADO)
+# BASE SIMULADA
 # -----------------------------
 def get_jobs_source():
     now = datetime.now()
 
     return [
-        {
-            "id": "1",
-            "title": "Product Owner",
-            "company": "Tech Corp",
-            "posted_at": (now - timedelta(hours=2)).isoformat()
-        },
-        {
-            "id": "2",
-            "title": "Backend Developer Python",
-            "company": "Startup BR",
-            "posted_at": (now - timedelta(hours=3)).isoformat()
-        },
-        {
-            "id": "3",
-            "title": "Product Owner Senior",
-            "company": "Global Systems",
-            "posted_at": (now - timedelta(hours=5)).isoformat()
-        },
-        {
-            "id": "4",
-            "title": "DevOps Engineer AWS",
-            "company": "Cloud Infra",
-            "posted_at": (now - timedelta(hours=8)).isoformat()
-        },
-        {
-            "id": "5",
-            "title": "Frontend React Developer",
-            "company": "Digital Factory",
-            "posted_at": (now - timedelta(hours=10)).isoformat()
-        }
+        {"id": "1", "title": "Product Owner", "company": "Tech Corp",
+         "posted_at": (now - timedelta(hours=2)).isoformat()},
+
+        {"id": "2", "title": "Analista de Dados", "company": "Data BR",
+         "posted_at": (now - timedelta(hours=3)).isoformat()},
+
+        {"id": "3", "title": "Backend Developer Python", "company": "Startup BR",
+         "posted_at": (now - timedelta(hours=5)).isoformat()},
+
+        {"id": "4", "title": "Analista de Sistemas", "company": "Global Systems",
+         "posted_at": (now - timedelta(hours=10)).isoformat()},
+
+        {"id": "5", "title": "Product Owner Senior", "company": "Tech Global",
+         "posted_at": (now - timedelta(hours=12)).isoformat()},
+
+        {"id": "6", "title": "DevOps Engineer AWS", "company": "Cloud Infra",
+         "posted_at": (now - timedelta(hours=18)).isoformat()},
     ]
 
 
@@ -54,51 +42,62 @@ def home():
 
 
 # -----------------------------
-# API DE BUSCA (CORRIGIDA DE VERDADE)
+# NORMALIZA TEXTO (IMPORTANTE)
+# -----------------------------
+def normalize(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9\s]', ' ', text)  # remove símbolos tipo "+"
+    text = re.sub(r'\s+', ' ', text)          # remove espaços duplicados
+    return text.strip()
+
+
+# -----------------------------
+# API PRINCIPAL (CORRIGIDA)
 # -----------------------------
 @app.route("/api/jobs")
 def jobs():
 
-    q = request.args.get("q", "").strip().lower()
+    q = request.args.get("q", "")
     hours = int(request.args.get("hours", 24))
 
     jobs = get_jobs_source()
 
     limit_time = datetime.now() - timedelta(hours=hours)
 
+    # 🚨 SE NÃO TEM BUSCA → RETORNA LISTA VAZIA (COMO VOCÊ QUER)
+    if not q.strip():
+        return jsonify([])
+
+    q = normalize(q)
+    query_words = q.split()
+
     result = []
 
     for job in jobs:
         posted = datetime.fromisoformat(job["posted_at"])
 
-        # filtro de tempo
+        # 1. filtro de tempo CORRETO
         if posted < limit_time:
             continue
 
-        # 🚨 REGRA NOVA: se NÃO tem busca, NÃO retorna nada
-        if not q:
-            return jsonify([])
+        title = normalize(job["title"])
+        company = normalize(job["company"])
 
-        title = job["title"].lower()
-        company = job["company"].lower()
-
-        # 🔥 MATCH INTELIGENTE (SEM QUEBRAR)
-        query_words = q.split()
-
-        match_score = 0
+        # 2. MATCH FLEXÍVEL (SEM MATAR RESULTADOS)
+        score = 0
 
         for word in query_words:
             if word in title:
-                match_score += 2
+                score += 3
             if word in company:
-                match_score += 1
+                score += 1
 
-        # só entra se tiver QUALQUER relevância
-        if match_score > 0:
-            job["score"] = match_score
+        # 3. regra simples: qualquer match entra
+        if score > 0:
+            job["score"] = score
             result.append(job)
 
-    # ordena por relevância + recência
+    # 4. ordenação por relevância + tempo
     result.sort(key=lambda x: (x["score"], x["posted_at"]), reverse=True)
 
     return jsonify(result)
