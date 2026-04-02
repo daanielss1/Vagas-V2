@@ -8,7 +8,6 @@ def filter_jobs(jobs, hours, applied_ids):
     for job in jobs:
         posted = datetime.fromisoformat(job["posted_at"])
 
-        # regra: só mostra até 24h OU se já aplicada
         if posted >= limit or job["id"] in applied_ids:
             result.append(job)
 

@@ -6,21 +6,14 @@ import os
 
 app = Flask(__name__)
 
-# Inicializa banco
 init_db()
 
 
-# -------------------------
-# FRONT
-# -------------------------
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# -------------------------
-# LISTAR VAGAS
-# -------------------------
 @app.route("/api/jobs")
 def jobs():
     q = request.args.get("q", "")
@@ -38,9 +31,6 @@ def jobs():
     return jsonify(filtered)
 
 
-# -------------------------
-# MARCAR COMO APLICADA
-# -------------------------
 @app.route("/api/apply", methods=["POST"])
 def apply():
     job = request.json
@@ -48,17 +38,11 @@ def apply():
     return jsonify({"status": "ok"})
 
 
-# -------------------------
-# LISTAR APLICADAS
-# -------------------------
 @app.route("/api/applied")
 def applied():
     return jsonify(get_applied())
 
 
-# -------------------------
-# RENDER ENTRYPOINT (CRÍTICO)
-# -------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False)
