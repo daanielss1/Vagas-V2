@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 
 # -----------------------------
-# BASE SIMULADA
+# BASE DE VAGAS (SIMULADO)
 # -----------------------------
 def get_jobs_source():
     now = datetime.now()
@@ -22,25 +22,25 @@ def get_jobs_source():
             "id": "2",
             "title": "Backend Developer Python",
             "company": "Startup BR",
-            "posted_at": (now - timedelta(hours=4)).isoformat()
+            "posted_at": (now - timedelta(hours=3)).isoformat()
         },
         {
             "id": "3",
             "title": "Product Owner Senior",
             "company": "Global Systems",
-            "posted_at": (now - timedelta(hours=6)).isoformat()
+            "posted_at": (now - timedelta(hours=5)).isoformat()
         },
         {
             "id": "4",
-            "title": "DevOps Engineer",
+            "title": "DevOps Engineer AWS",
             "company": "Cloud Infra",
-            "posted_at": (now - timedelta(hours=10)).isoformat()
+            "posted_at": (now - timedelta(hours=8)).isoformat()
         },
         {
             "id": "5",
             "title": "Frontend React Developer",
             "company": "Digital Factory",
-            "posted_at": (now - timedelta(hours=12)).isoformat()
+            "posted_at": (now - timedelta(hours=10)).isoformat()
         }
     ]
 
@@ -54,7 +54,7 @@ def home():
 
 
 # -----------------------------
-# API DE BUSCA (CORRETA AGORA)
+# API DE BUSCA (CORRIGIDA DE VERDADE)
 # -----------------------------
 @app.route("/api/jobs")
 def jobs():
@@ -62,44 +62,50 @@ def jobs():
     q = request.args.get("q", "").strip().lower()
     hours = int(request.args.get("hours", 24))
 
-    # 🚨 REGRA 1: se não tem busca, NÃO retorna nada
-    if not q:
-        return jsonify([])
-
-    source = get_jobs_source()
+    jobs = get_jobs_source()
 
     limit_time = datetime.now() - timedelta(hours=hours)
 
     result = []
 
-    for job in source:
-        posted_time = datetime.fromisoformat(job["posted_at"])
+    for job in jobs:
+        posted = datetime.fromisoformat(job["posted_at"])
 
         # filtro de tempo
-        if posted_time < limit_time:
+        if posted < limit_time:
             continue
+
+        # 🚨 REGRA NOVA: se NÃO tem busca, NÃO retorna nada
+        if not q:
+            return jsonify([])
 
         title = job["title"].lower()
         company = job["company"].lower()
 
-        # 🚨 REGRA 2: match EXATO / REAL (sem mistura)
-        words = q.split()
+        # 🔥 MATCH INTELIGENTE (SEM QUEBRAR)
+        query_words = q.split()
 
-        match = all(
-            any(w in title or w in company for w in words)
-        )
+        match_score = 0
 
-        if match:
+        for word in query_words:
+            if word in title:
+                match_score += 2
+            if word in company:
+                match_score += 1
+
+        # só entra se tiver QUALQUER relevância
+        if match_score > 0:
+            job["score"] = match_score
             result.append(job)
 
-    # ordenação
-    result.sort(key=lambda x: x["posted_at"], reverse=True)
+    # ordena por relevância + recência
+    result.sort(key=lambda x: (x["score"], x["posted_at"]), reverse=True)
 
     return jsonify(result)
 
 
 # -----------------------------
-# APLICAÇÃO
+# APLICAÇÕES
 # -----------------------------
 applied = []
 
